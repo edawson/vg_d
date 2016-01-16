@@ -1,2 +1,5 @@
-# vg_d
-A docker file for vg (github.com/ekg/vg), linked to an automatic build on Dockerhub.
+vg_d
+--------
+
+This repo contains a dockerfile linked to the automated build on Dockerhub.
+
