@@ -1,56 +1,48 @@
+FROM ubuntu:16.04
 
-## Use a base ubuntu install
-FROM ubuntu:14.04
-MAINTAINER erictdawson
+MAINTAINER Erik Garrison <erik.garrison@gmail.com>
 
-## Download dependencies for vg, pretty standard fare
-#RUN sed 's/main$/main universe/' -i /etc/apt/sources.list
-RUN apt-get update && apt-get install -y software-properties-common \
-    gcc-4.9-base \
-    g++ \
-    ncurses-dev \
-    pkg-config \
-    build-essential \
-    libjansson-dev \
-    automake \
-    libevent-2.0-5 \
-    libevent-pthreads-2.0-5 \
-    libpomp-dev \
-    libtool \
-    curl \
-    unzip \
-    wget \
-    libbz2-dev \
-    gzip \
-    git \
-    cmake \
-    libsnappy-dev \
-    libgflags-dev \
-    zlib1g-dev
+# Make sure the en_US.UTF-8 locale exists, since we need it for tests
+RUN locale-gen en_US en_US.UTF-8 && dpkg-reconfigure locales
 
-    #python-dev \
-    #protobuf-compiler \
-    #libprotoc-dev \
+# Set up for make get-deps
+RUN mkdir /app
+WORKDIR /app
+COPY Makefile /app/Makefile
+
+RUN sed -i "s/sudo//g" /app/Makefile
+
+# Install vg dependencies and clear the package index
+RUN \
+    echo "deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse" | tee -a /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y \
+        build-essential \
+        gcc-5-base \
+        libgcc-5-dev \
+        pkg-config \
+        jq/trusty-backports \
+        && \
+    make get-deps && \
+    rm -rf /var/lib/apt/lists/*
     
-    #RUN apt-get update
+# Move in all the other files
+COPY . /app
+    
+# Build vg
+RUN cd /app && . ./source_me.sh && make -j8
 
-## Set CXXFLAGS and CFLAGS for gcc to use SSE4.1
-#ENV CXXFLAGS "-O2 -g march=corei7 -mavx -fopenmp -std=c++11"
-#ENV CXXFLAGS "$CXXFLAGS -march=corei7 -mavx"
+# Make tests. We can't do it in parallel since it cleans up the test binary
+RUN cd /app && . ./source_me.sh make test
 
-## Download VG and its git dependencies
-RUN git clone --recursive https://github.com/edawson/vg.git /home/vg
-RUN cd /home/vg && . ./source_me.sh && make
-#RUN cd /home/vg; make
-#RUN cp -r /home/vg/include/* /usr/local/include/
-ENV LIBRARY_PATH /home/vg/lib:$LIBRARY_PATH
-ENV LD_LIBRARY_PATH /home/vg/lib:$LD_LIBRARY_PATH
-ENV LD_INCLUDE_PATH /home/vg/include:$LD_INCLUDE_PATH
-ENV C_INCLUDE_PATH /home/vg/include:$C_INCLUDE_PATH
-ENV CPLUS_INCLUDE_PATH /home/vg/include:$CPLUS_INCLUDE_PATH
-ENV INCLUDE_PATH /home/vg/include:$INCLUDE_PATH
-ENV PATH /home/vg/bin:$PATH
-#RUN cp -r /home/vg/lib/* /usr/local/lib
-#RUN ln -s "/home/vg/bin/vg" "/usr/bin/vg"
-#CMD cd /home/vg/ && . ./source_me.sh && vg
-#ENTRYPOINT vg
+ENV LD_LIBRARY_PATH=/app/lib
+ENV LIBRARY_PATH /app/lib:$LIBRARY_PATH
+ENV LD_LIBRARY_PATH /app/lib:$LD_LIBRARY_PATH
+ENV LD_INCLUDE_PATH /app/include:$LD_INCLUDE_PATH
+ENV C_INCLUDE_PATH /app/include:$C_INCLUDE_PATH
+ENV CPLUS_INCLUDE_PATH /app/include:$CPLUS_INCLUDE_PATH
+ENV INCLUDE_PATH /app/include:$INCLUDE_PATH
+
+#ENTRYPOINT ["/app/bin/vg"]
+RUN cp /app/bin/vg /usr/bin
+
