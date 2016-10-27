@@ -28,7 +28,7 @@ RUN sed -i "s/sudo//g" /app/Makefile
 RUN cd /app && make get-deps && . ./source_me.sh && make -j8
 
 # Make tests. We can't do it in parallel since it cleans up the test binary
-RUN cd /app && . ./source_me.sh make test
+# #TODO bad news - no tests with docker.
 
 ENV LD_LIBRARY_PATH=/app/lib
 ENV LIBRARY_PATH /app/lib:$LIBRARY_PATH
