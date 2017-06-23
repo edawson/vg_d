@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 MAINTAINER Erik Garrison <erik.garrison@gmail.com>
 
 # Make sure the en_US.UTF-8 locale exists, since we need it for tests
-RUN locale-gen en_US en_US.UTF-8 && dpkg-reconfigure locales
+#RUN locale-gen en_US en_US.UTF-8 && dpkg-reconfigure locales
 # Install vg dependencies and clear the package index
 RUN \
     echo "deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse" | tee -a /etc/apt/sources.list && \
